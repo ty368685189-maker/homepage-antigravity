@@ -1,0 +1,19 @@
+[Unit]
+Description=Homepage lightweight admin server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/homepage
+EnvironmentFile=/etc/homepage-admin.env
+ExecStart=/usr/bin/env node admin-server/src/server.js
+Restart=always
+RestartSec=5
+MemoryHigh=384M
+MemoryMax=512M
+CPUQuota=80%
+KillSignal=SIGINT
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

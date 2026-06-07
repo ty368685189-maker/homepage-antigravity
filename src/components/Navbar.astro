@@ -1,0 +1,472 @@
+---
+import { Icon } from "astro-icon/components";
+import { navBarConfig, siteConfig } from "../config";
+import { LinkPresets } from "../constants/link-presets";
+import type { NavBarDropdown, NavBarLink } from "../types/config";
+import { url } from "../utils/url-utils";
+import LightDarkSwitch from "./LightDarkSwitch.svelte";
+import Search from "./Search.svelte";
+import DisplaySettings from "./widget/DisplaySettings.svelte";
+
+const className = Astro.props.class;
+
+type NavItem = NavBarLink | NavBarDropdown;
+
+function isDropdown(item: NavItem): item is NavBarDropdown {
+	return "children" in item && Array.isArray(item.children);
+}
+
+const navItems: NavItem[] = navBarConfig.links.map((item): NavItem => {
+	if (typeof item === "number") return LinkPresets[item];
+	return item;
+});
+
+const hrefFor = (item: NavBarLink) =>
+	item.external ? item.url : url(item.url);
+---
+
+<header id="navbar" class="site-nav" data-navbar-root>
+	<div id="navbar-glass" class:list={[className, "site-nav__bar"]}>
+		<a href={url("/")} class="site-nav__brand" aria-label={siteConfig.title}>
+			<span class="site-nav__brand-dot"></span>
+			<span class="site-nav__brand-text">{siteConfig.title}</span>
+		</a>
+
+		<nav class="site-nav__links" aria-label="Primary navigation">
+			{navItems.map((item) => (
+				isDropdown(item) ? (
+					<div class="site-nav__dropdown" data-nav-dropdown>
+						<button class="site-nav__link" type="button" aria-expanded="false" data-nav-dropdown-trigger>
+							<span>{item.name}</span>
+							<Icon name="material-symbols:keyboard-arrow-down-rounded" class="site-nav__chevron" />
+						</button>
+						<div class="site-nav__dropdown-panel" data-nav-dropdown-panel>
+							{item.children.map((child) => (
+								<a
+									href={hrefFor(child)}
+									target={child.external ? "_blank" : undefined}
+									rel={child.external ? "noopener noreferrer" : undefined}
+									class="site-nav__menu-item"
+								>
+									{child.icon && <Icon name={child.icon} class="site-nav__menu-icon" />}
+									<span>{child.name}</span>
+									{child.external && <Icon name="fa6-solid:arrow-up-right-from-square" class="site-nav__external-icon" />}
+								</a>
+							))}
+						</div>
+					</div>
+				) : (
+					<a
+						aria-label={item.name}
+						href={hrefFor(item)}
+						target={item.external ? "_blank" : undefined}
+						rel={item.external ? "noopener noreferrer" : undefined}
+						class="site-nav__link"
+					>
+						<span>{item.name}</span>
+						{item.external && <Icon name="fa6-solid:arrow-up-right-from-square" class="site-nav__external-icon" />}
+					</a>
+				)
+			))}
+		</nav>
+
+		<div class="site-nav__actions">
+			<Search client:only="svelte" />
+			{!siteConfig.themeColor.fixed && (
+				<button
+					aria-label="Display Settings"
+					class="site-nav__icon-button"
+					type="button"
+					data-display-settings-switch
+				>
+					<Icon name="material-symbols:palette-outline" />
+				</button>
+			)}
+			<LightDarkSwitch client:only="svelte" />
+			<button
+				aria-label="Menu"
+				class="site-nav__icon-button site-nav__menu-button"
+				type="button"
+				aria-expanded="false"
+				data-nav-menu-switch
+			>
+				<Icon name="material-symbols:menu-rounded" />
+			</button>
+		</div>
+
+		<div class="site-nav__mobile-panel" data-nav-menu-panel>
+			{navItems.map((item) => (
+				isDropdown(item) ? (
+					<div class="site-nav__mobile-group">
+						<div class="site-nav__mobile-heading">{item.name}</div>
+						{item.children.map((child) => (
+							<a
+								href={hrefFor(child)}
+								target={child.external ? "_blank" : undefined}
+								rel={child.external ? "noopener noreferrer" : undefined}
+								class="site-nav__mobile-item"
+							>
+								{child.icon && <Icon name={child.icon} />}
+								<span>{child.name}</span>
+								{child.external && <Icon name="fa6-solid:arrow-up-right-from-square" class="site-nav__external-icon" />}
+							</a>
+						))}
+					</div>
+				) : (
+					<a
+						href={hrefFor(item)}
+						target={item.external ? "_blank" : undefined}
+						rel={item.external ? "noopener noreferrer" : undefined}
+						class="site-nav__mobile-item site-nav__mobile-item--strong"
+					>
+						<span>{item.name}</span>
+						{item.external && <Icon name="fa6-solid:arrow-up-right-from-square" class="site-nav__external-icon" />}
+					</a>
+				)
+			))}
+		</div>
+
+		<DisplaySettings client:only="svelte" />
+	</div>
+</header>
+
+<style>
+	.site-nav {
+		position: sticky;
+		top: 0;
+		z-index: 70;
+		width: 100%;
+		pointer-events: none;
+		display: flex;
+		flex-direction: column;
+		height: 6rem;
+	}
+
+	.site-nav__bar {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+		align-items: center;
+		gap: 0.75rem;
+		width: min(calc(100% - 2.5rem), var(--page-width));
+		min-height: 4.5rem;
+		margin: 1.5rem auto 0;
+		padding: 0.625rem 0.875rem;
+		pointer-events: auto;
+		overflow: visible;
+		border: 1px solid rgba(15, 23, 42, 0.08);
+		border-radius: 1rem;
+		background: rgba(255, 255, 255, 0.6);
+		box-shadow:
+			0 16px 40px rgba(15, 23, 42, 0.08),
+			inset 0 1px 0 rgba(255, 255, 255, 0.7);
+		backdrop-filter: blur(32px) saturate(1.15);
+		-webkit-backdrop-filter: blur(32px) saturate(1.15);
+		transition: margin 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+					padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+					min-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	:global(.site-nav.is-scrolled) .site-nav__bar {
+		margin-top: 0.5rem;
+		min-height: 3.8rem;
+		padding: 0.45rem 0.875rem;
+	}
+
+	:global(.dark) .site-nav__bar {
+		border-color: rgba(255, 255, 255, 0.08);
+		background: rgba(15, 18, 28, 0.6);
+		box-shadow:
+			0 18px 44px rgba(0, 0, 0, 0.35),
+			inset 0 1px 0 rgba(255, 255, 255, 0.08);
+	}
+
+	.site-nav__brand,
+	.site-nav__link,
+	.site-nav__icon-button,
+	.site-nav__menu-item,
+	.site-nav__mobile-item {
+		color: rgba(15, 23, 42, 0.82);
+		transition:
+			background-color 0.18s ease,
+			color 0.18s ease,
+			transform 0.18s ease;
+	}
+
+	:global(.dark) .site-nav__brand,
+	:global(.dark) .site-nav__link,
+	:global(.dark) .site-nav__icon-button,
+	:global(.dark) .site-nav__menu-item,
+	:global(.dark) .site-nav__mobile-item {
+		color: rgba(255, 255, 255, 0.82);
+	}
+
+	.site-nav__brand {
+		display: inline-flex;
+		justify-self: start;
+		max-width: min(18rem, 42vw);
+		min-height: 3.25rem;
+		align-items: center;
+		gap: 0.65rem;
+		border-radius: 999px;
+		padding: 0 1rem;
+		font-weight: 850;
+		text-decoration: none;
+	}
+
+	.site-nav__brand:hover,
+	.site-nav__link:hover,
+	.site-nav__icon-button:hover,
+	.site-nav__menu-item:hover,
+	.site-nav__mobile-item:hover {
+		background: var(--btn-plain-bg-hover);
+		color: var(--primary);
+	}
+
+	.site-nav__brand-dot {
+		width: 0.7rem;
+		height: 0.7rem;
+		flex: 0 0 auto;
+		border-radius: 999px;
+		background: var(--primary);
+	}
+
+	.site-nav__brand-text {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.site-nav__links {
+		display: none;
+		justify-self: center;
+		align-items: center;
+		gap: 0.25rem;
+		white-space: nowrap;
+	}
+
+	.site-nav__link {
+		display: inline-flex;
+		min-height: 2.75rem;
+		align-items: center;
+		gap: 0.25rem;
+		border: 0;
+		border-radius: 999px;
+		background: transparent;
+		padding: 0 1rem;
+		font: inherit;
+		font-weight: 800;
+		text-decoration: none;
+		cursor: pointer;
+	}
+
+	.site-nav__dropdown {
+		position: relative;
+	}
+
+	.site-nav__chevron {
+		font-size: 1.25rem;
+		transition: transform 0.18s ease;
+	}
+
+	.site-nav__dropdown.is-open .site-nav__chevron {
+		transform: rotate(180deg);
+	}
+
+	.site-nav__dropdown-panel {
+		position: absolute;
+		top: calc(100% + 0.75rem);
+		left: 50%;
+		z-index: 80;
+		display: grid;
+		min-width: 12rem;
+		gap: 0.25rem;
+		border: 1px solid rgba(15, 23, 42, 0.08);
+		border-radius: 1rem;
+		background: rgba(255, 255, 255, 0.94);
+		padding: 0.45rem;
+		box-shadow: 0 20px 48px rgba(15, 23, 42, 0.16);
+		opacity: 0;
+		pointer-events: none;
+		transform: translate(-50%, -0.35rem);
+		transition:
+			opacity 0.18s ease,
+			transform 0.18s ease;
+		backdrop-filter: blur(18px);
+		-webkit-backdrop-filter: blur(18px);
+	}
+
+	:global(.dark) .site-nav__dropdown-panel {
+		border-color: rgba(255, 255, 255, 0.08);
+		background: rgba(18, 20, 30, 0.94);
+		box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42);
+	}
+
+	.site-nav__dropdown.is-open .site-nav__dropdown-panel {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translate(-50%, 0);
+	}
+
+	.site-nav__menu-item,
+	.site-nav__mobile-item {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		border-radius: 0.75rem;
+		padding: 0.65rem 0.8rem;
+		font-weight: 750;
+		text-decoration: none;
+	}
+
+	.site-nav__menu-icon {
+		font-size: 1rem;
+		color: var(--primary);
+	}
+
+	.site-nav__external-icon {
+		margin-left: auto;
+		font-size: 0.72rem;
+		opacity: 0.45;
+	}
+
+	.site-nav__actions {
+		display: flex;
+		justify-self: end;
+		align-items: center;
+		gap: 0.25rem;
+		min-width: 0;
+	}
+
+	.site-nav__icon-button {
+		display: inline-flex;
+		width: 2.75rem;
+		height: 2.75rem;
+		align-items: center;
+		justify-content: center;
+		border: 0;
+		border-radius: 999px;
+		background: transparent;
+		font-size: 1.25rem;
+		cursor: pointer;
+	}
+
+	.site-nav__mobile-panel {
+		position: absolute;
+		top: calc(100% + 0.75rem);
+		right: 0;
+		left: 0;
+		z-index: 80;
+		display: grid;
+		max-height: calc(100vh - 7rem);
+		gap: 0.25rem;
+		overflow-y: auto;
+		border: 1px solid rgba(15, 23, 42, 0.08);
+		border-radius: 1.25rem;
+		background: rgba(255, 255, 255, 0.96);
+		padding: 0.65rem;
+		box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
+		opacity: 0;
+		pointer-events: none;
+		transform: translateY(-0.35rem);
+		transition:
+			opacity 0.18s ease,
+			transform 0.18s ease;
+		backdrop-filter: blur(18px);
+		-webkit-backdrop-filter: blur(18px);
+	}
+
+	:global(.dark) .site-nav__mobile-panel {
+		border-color: rgba(255, 255, 255, 0.08);
+		background: rgba(18, 20, 30, 0.96);
+		box-shadow: 0 20px 48px rgba(0, 0, 0, 0.44);
+	}
+
+	.site-nav__mobile-panel.is-open {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translateY(0);
+	}
+
+	.site-nav__mobile-heading {
+		padding: 0.65rem 0.8rem 0.25rem;
+		color: rgba(15, 23, 42, 0.48);
+		font-size: 0.78rem;
+		font-weight: 850;
+	}
+
+	:global(.dark) .site-nav__mobile-heading {
+		color: rgba(255, 255, 255, 0.48);
+	}
+
+	.site-nav__mobile-item--strong {
+		font-weight: 850;
+	}
+
+	@media (min-width: 768px) {
+		.site-nav__links {
+			display: flex;
+		}
+
+		.site-nav__menu-button,
+		.site-nav__mobile-panel {
+			display: none;
+		}
+	}
+
+	@media (max-width: 767px) {
+		.site-nav__bar {
+			width: min(calc(100% - 1.7rem), var(--page-width));
+			grid-template-columns: minmax(0, 1fr) auto;
+			min-height: 4rem;
+			padding: 0.5rem;
+		}
+
+		.site-nav__brand {
+			max-width: min(17rem, 58vw);
+			padding-inline: 0.8rem;
+		}
+	}
+</style>
+
+<script>
+import { bindSiteNav } from "../scripts/navbar";
+
+bindSiteNav();
+document.addEventListener("astro:after-swap", bindSiteNav);
+</script>
+
+{import.meta.env.PROD && <script is:inline define:vars={{scriptUrl: url('/pagefind/pagefind.js')}}>
+async function loadPagefind() {
+    try {
+        const response = await fetch(scriptUrl, { method: 'HEAD' });
+        if (!response.ok) {
+            throw new Error(`Pagefind script not found: ${response.status}`);
+        }
+
+        const pagefind = await import(scriptUrl);
+
+        await pagefind.options({
+            excerptLength: 20
+        });
+
+        window.pagefind = pagefind;
+
+        document.dispatchEvent(new CustomEvent('pagefindready'));
+    } catch (error) {
+        console.error('Failed to load Pagefind:', error);
+        window.pagefind = {
+            search: () => Promise.resolve({ results: [] }),
+            options: () => Promise.resolve(),
+        };
+        document.dispatchEvent(new CustomEvent('pagefindloaderror'));
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadPagefind);
+} else {
+    loadPagefind();
+}
+</script>}

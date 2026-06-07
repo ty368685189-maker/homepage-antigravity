@@ -1,0 +1,21 @@
+---
+import { getCollection } from "astro:content";
+import FavoriteGallery from "../components/FavoriteGallery.astro";
+import PageHeader from "../components/PageHeader.astro";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+
+const anime = await getCollection("anime");
+---
+
+<MainGridLayout title="动漫收藏">
+	<PageHeader
+		eyebrow="Anime"
+		title="动漫收藏"
+		description="把喜欢、在看和想补的国漫与动画整理在这里，留住作品带来的兴奋感。"
+		icon="material-symbols:movie-outline-rounded"
+	/>
+	<FavoriteGallery
+		kind="anime"
+		items={anime}
+	/>
+</MainGridLayout>

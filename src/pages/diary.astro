@@ -1,0 +1,18 @@
+---
+import { getCollection } from "astro:content";
+import DiaryTimeline from "../components/DiaryTimeline.astro";
+import PageHeader from "../components/PageHeader.astro";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+
+const diary = await getCollection("diary");
+---
+
+<MainGridLayout title="日记">
+	<PageHeader
+		eyebrow="Diary"
+		title="日记"
+		description="记录生活里的观察、阶段性的想法，以及那些暂时还不能被归类的片段。"
+		icon="material-symbols:edit-note-rounded"
+	/>
+	<DiaryTimeline items={diary} />
+</MainGridLayout>

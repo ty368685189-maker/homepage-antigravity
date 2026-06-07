@@ -1,0 +1,21 @@
+---
+import { getCollection } from "astro:content";
+import FavoriteGallery from "../components/FavoriteGallery.astro";
+import PageHeader from "../components/PageHeader.astro";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+
+const novels = await getCollection("novels");
+---
+
+<MainGridLayout title="小说收藏">
+	<PageHeader
+		eyebrow="Novels"
+		title="小说收藏"
+		description="收集读过、在追和想研究的小说，把爽点、结构和记忆点慢慢归档。"
+		icon="material-symbols:menu-book-outline-rounded"
+	/>
+	<FavoriteGallery
+		kind="novel"
+		items={novels}
+	/>
+</MainGridLayout>

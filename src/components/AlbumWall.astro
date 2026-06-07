@@ -1,0 +1,121 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { resolveImageSrc } from "../utils/image-utils";
+import EmptyState from "./EmptyState.astro";
+
+interface Props {
+	items: CollectionEntry<"album">[];
+}
+
+const { items } = Astro.props;
+const sortedItems = [...items].sort((a, b) => {
+	if (a.data.featured !== b.data.featured) return a.data.featured ? -1 : 1;
+	return Number(b.data.date || 0) - Number(a.data.date || 0);
+});
+
+const formatDate = (date?: Date) =>
+	date
+		? new Intl.DateTimeFormat("zh-CN", {
+				year: "numeric",
+				month: "2-digit",
+				day: "2-digit",
+			}).format(date)
+		: "";
+
+const albumImages = import.meta.glob<{ default: { src: string } }>(
+	"../assets/images/album/**/*.{avif,gif,jpeg,jpg,png,webp}",
+	{ eager: true },
+);
+---
+
+{sortedItems.length === 0 ? (
+	<EmptyState
+		icon="material-symbols:photo-library-outline-rounded"
+		title="相册还没有照片"
+		description="添加照片条目后，这里会展示精选图片和拍摄信息。"
+	/>
+) : (
+	<section class="album-wall">
+		{sortedItems.map((item) => {
+			const imageSrc = resolveImageSrc(item.data.image, albumImages);
+			return (
+				<article class="album-card">
+					{imageSrc && <img src={imageSrc} alt={item.data.title} loading="lazy" />}
+					<div class="album-body">
+						<h2>{item.data.title}</h2>
+						<div class="meta-row">
+							{item.data.date && <span>{formatDate(item.data.date)}</span>}
+							{item.data.location && <span>{item.data.location}</span>}
+						</div>
+						{item.data.description && <p>{item.data.description}</p>}
+						{item.data.tags.length > 0 && (
+							<div class="tag-row">
+								{item.data.tags.slice(0, 5).map((tag) => <span>#{tag}</span>)}
+							</div>
+						)}
+					</div>
+				</article>
+			);
+		})}
+	</section>
+)}
+
+<style>
+	.album-wall {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+		gap: 1rem;
+		color: var(--color-text);
+	}
+
+	.album-card {
+		overflow: hidden;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		background: var(--color-surface);
+	}
+
+	.album-card img {
+		display: block;
+		width: 100%;
+		aspect-ratio: 4 / 3;
+		background: var(--color-surface-soft);
+		object-fit: cover;
+	}
+
+	.album-body {
+		display: grid;
+		gap: 0.65rem;
+		padding: 1rem;
+	}
+
+	h2 {
+		margin: 0;
+		font-size: 1.1rem;
+		font-weight: 900;
+		letter-spacing: 0;
+	}
+
+	p {
+		margin: 0;
+		color: var(--color-muted);
+		line-height: 1.65;
+	}
+
+	.meta-row,
+	.tag-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+	}
+
+	.meta-row span,
+	.tag-row span {
+		border-radius: 999px;
+		background: var(--color-surface-soft);
+		padding: 0.26rem 0.58rem;
+		color: var(--color-muted);
+		font-size: 0.8rem;
+		font-weight: 750;
+	}
+</style>

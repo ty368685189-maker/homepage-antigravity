@@ -1,0 +1,18 @@
+---
+import { getCollection } from "astro:content";
+import AlbumWall from "../components/AlbumWall.astro";
+import PageHeader from "../components/PageHeader.astro";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+
+const album = await getCollection("album");
+---
+
+<MainGridLayout title="相册">
+	<PageHeader
+		eyebrow="Album"
+		title="相册"
+		description="放一些值得保留下来的画面，让主页不只记录文字，也记录阶段里的风景。"
+		icon="material-symbols:photo-library-outline-rounded"
+	/>
+	<AlbumWall items={album} />
+</MainGridLayout>

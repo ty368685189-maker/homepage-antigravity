@@ -1,0 +1,185 @@
+---
+import BackToTop from "@components/control/BackToTop.astro";
+import Footer from "@components/Footer.astro";
+import Navbar from "@components/Navbar.astro";
+import SideBar from "@components/widget/SideBar.astro";
+import type { MarkdownHeading } from "astro";
+import { Icon } from "astro-icon/components";
+import ImageWrapper from "../components/misc/ImageWrapper.astro";
+import TOC from "../components/widget/TOC.astro";
+import { siteConfig } from "../config";
+import {
+	BANNER_HEIGHT,
+	BANNER_HEIGHT_EXTEND,
+	MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
+} from "../constants/constants";
+import { pathsEqual, url } from "../utils/url-utils";
+import Layout from "./Layout.astro";
+
+interface Props {
+	title?: string;
+	banner?: string;
+	description?: string;
+	lang?: string;
+	setOGTypeArticle?: boolean;
+	headings?: MarkdownHeading[];
+}
+
+const {
+	title,
+	banner,
+	description,
+	lang,
+	setOGTypeArticle,
+	headings = [],
+} = Astro.props;
+const hasBannerCredit =
+	siteConfig.banner.enable && siteConfig.banner.credit.enable;
+const hasBannerLink = !!siteConfig.banner.credit.url;
+
+const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
+
+// 动态计算非首页和首页的可见高度与重叠度，最大化非首页的画面展示范围
+const bannerVisibleHeight = isHomePage ? BANNER_HEIGHT : 45; // 非首页可见画幅从 35vh 增大到 45vh
+const bannerOverlap = isHomePage ? MAIN_PANEL_OVERLAPS_BANNER_HEIGHT : 1.5; // 非首页卡片重叠调小至 1.5rem，留出呼吸感
+const bannerTopOffset = isHomePage
+	? BANNER_HEIGHT_EXTEND
+	: 65 - bannerVisibleHeight; // 非首页向上偏移调小至 20vh
+
+const mainPanelTop = siteConfig.banner.enable
+	? `calc(${bannerVisibleHeight}vh - ${bannerOverlap}rem)`
+	: "5.5rem";
+---
+
+<Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle}>
+
+
+<!-- Navbar -->
+<slot slot="head" name="head"></slot>
+<div id="top-row" class="z-50 pointer-events-none relative w-full transition-all duration-700" class:list={[""]}>
+    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-all">
+        <Navbar></Navbar>
+    </div>
+</div>
+
+<!-- Banner -->
+{siteConfig.banner.enable && <div id="banner-wrapper" class={`absolute z-10 w-full transition duration-700 overflow-hidden`} style={`top: -${bannerTopOffset}vh`}>
+    <div class="absolute inset-0" style="-webkit-mask-image: linear-gradient(to bottom, #000 90%, transparent 100%)">
+        <ImageWrapper id="banner" alt="Banner image of the blog" class:list={["object-cover h-full transition duration-700 opacity-0 scale-105"]}
+                      src={siteConfig.banner.src} position={siteConfig.banner.position}
+                      loading="eager" fetchpriority="high"
+        >
+        </ImageWrapper>
+        <!-- 暗色渐变蒙版提升可读性 -->
+        <div class="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/25 z-20 pointer-events-none"></div>
+    </div>
+
+    <!-- 还原经典的 SVG 动态双层流动水波纹，引入大幅度的起伏与纵向透明度渐变，增强呼吸感与层次变化 -->
+    <div class="absolute bottom-0 left-0 w-full overflow-hidden z-30 pointer-events-none" style="line-height: 0;">
+        <svg style="width:0;height:0;position:absolute;" aria-hidden="true">
+            <defs>
+                <!-- 增加了横向渐变坐标，并注入了一丝随主题色变化的微光色彩 -->
+                <linearGradient id="wave-gradient-back" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="var(--card-bg)" stop-opacity="0"></stop>
+                    <stop offset="50%" stop-color="oklch(0.9 0.03 var(--hue))" stop-opacity="0.25"></stop>
+                    <stop offset="100%" stop-color="var(--card-bg)" stop-opacity="0.5"></stop>
+                </linearGradient>
+                <linearGradient id="wave-gradient-front" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="var(--card-bg)" stop-opacity="0"></stop>
+                    <stop offset="40%" stop-color="var(--card-bg)" stop-opacity="0.3"></stop>
+                    <stop offset="75%" stop-color="var(--primary)" stop-opacity="0.45"></stop>
+                    <stop offset="100%" stop-color="var(--card-bg)" stop-opacity="0.85"></stop>
+                </linearGradient>
+            </defs>
+        </svg>
+        <!-- 后波浪 (放大起伏) -->
+        <div class="absolute bottom-0 left-0 w-[200%] flex" style="animation: wave-flow-back 25s linear infinite;">
+            <svg viewBox="0 0 2400 160" preserveAspectRatio="none" class="relative block w-full h-[100px] md:h-[150px] transition-colors duration-300" style="fill: url(#wave-gradient-back);">
+                <path d="M0,120 C300,20 900,220 1200,120 C1500,20 2100,220 2400,120 L2400,160 L0,160 Z"></path>
+            </svg>
+        </div>
+        <!-- 前波浪 (放大起伏) -->
+        <div class="relative w-[200%] flex" style="animation: wave-flow-front 15s linear infinite;">
+            <svg viewBox="0 0 2400 160" preserveAspectRatio="none" class="relative block w-full h-[120px] md:h-[180px] transition-colors duration-300" style="fill: url(#wave-gradient-front);">
+                <path d="M0,120 C300,220 900,20 1200,120 C1500,220 2100,20 2400,120 L2400,160 L0,160 Z"></path>
+            </svg>
+        </div>
+    </div>
+
+    <!-- 仅在首页展示的网站标题和副标题 -->
+    {isHomePage && (
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-center text-white z-20 pointer-events-none select-none px-4">
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wide drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] mb-3 onload-animation" style="font-family: 'Outfit', 'Inter', sans-serif;">
+                {siteConfig.title}
+            </h1>
+            <p class="text-sm md:text-base text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] onload-animation">
+                {siteConfig.subtitle}
+            </p>
+        </div>
+    )}
+</div>}
+
+<!-- Main content -->
+<div class="absolute w-full z-30 pointer-events-none" style={`top: ${mainPanelTop}`}>
+    <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
+    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
+        <div id="main-grid" class="transition duration-700 w-full left-0 right-0 grid grid-cols-[17.5rem_auto] grid-rows-[auto_1fr_auto] lg:grid-rows-[auto]
+    mx-auto gap-4 px-0 md:px-4"
+        >
+            <!-- Banner image credit -->
+            {hasBannerCredit && <a href={siteConfig.banner.credit.url} id="banner-credit" target="_blank" rel="noopener" aria-label="Visit image source"
+                                   class:list={["group onload-animation transition-all absolute flex justify-center items-center rounded-full " +
+                                   "px-3 right-4 -top-[3.25rem] bg-black/60 hover:bg-black/70 h-9", {"hover:pr-9 active:bg-black/80": hasBannerLink}]}
+            >
+                <Icon class="text-white/75 text-[1.25rem] mr-1" name="material-symbols:copyright-outline-rounded" ></Icon>
+                <div class="text-white/75 text-xs">{siteConfig.banner.credit.text}</div>
+                <Icon class:list={["transition absolute text-[oklch(0.75_0.14_var(--hue))] right-4 text-[0.75rem] opacity-0",
+                    {"group-hover:opacity-100": hasBannerLink}]}
+                      name="fa6-solid:arrow-up-right-from-square">
+                </Icon>
+            </a>}
+
+
+            <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[17.5rem] onload-animation" headings={headings}></SideBar>
+
+            <main id="swup-container" data-pagefind-body class="transition-swup-fade col-span-2 lg:col-span-1 overflow-hidden">
+                <div id="content-wrapper" class="onload-animation">
+                    <!-- the overflow-hidden here prevent long text break the layout-->
+                    <!-- make id different from windows.swup global property -->
+                    <slot></slot>
+                    <div class="footer col-span-2 onload-animation hidden lg:block">
+                        <Footer></Footer>
+                    </div>
+                </div>
+            </main>
+
+            <div class="footer col-span-2 onload-animation block lg:hidden">
+                <Footer></Footer>
+            </div>
+        </div>
+
+        <BackToTop></BackToTop>
+    </div>
+</div>
+
+<!-- The things that should be under the banner, only the TOC for now -->
+<div class="absolute w-full z-0 hidden 2xl:block">
+    <div class="relative max-w-[var(--page-width)] mx-auto">
+        <!-- TOC component -->
+        {siteConfig.toc.enable && <div id="toc-wrapper" class:list={["hidden lg:block transition absolute top-0 -right-[var(--toc-width)] w-[var(--toc-width)] items-center",
+            {"toc-hide": siteConfig.banner.enable}]}
+        >
+            <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll overflow-x-hidden hide-scrollbar">
+                <div id="toc" class="w-full h-full transition-swup-fade ">
+                    <div class="h-8 w-full"></div>
+                    <TOC headings={headings}></TOC>
+                    <div class="h-8 w-full"></div>
+                </div>
+            </div>
+        </div>}
+
+        <!-- #toc needs to exist for Swup to work normally -->
+        {!siteConfig.toc.enable && <div id="toc"></div>}
+    </div>
+</div>
+</Layout>

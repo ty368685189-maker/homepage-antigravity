@@ -1,0 +1,131 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { resolveImageSrc } from "../utils/image-utils";
+import EmptyState from "./EmptyState.astro";
+
+interface Props {
+	items: CollectionEntry<"diary">[];
+}
+
+const { items } = Astro.props;
+const sortedItems = [...items].sort((a, b) => {
+	return Number(b.data.date) - Number(a.data.date);
+});
+
+const formatDate = (date: Date) =>
+	new Intl.DateTimeFormat("zh-CN", {
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	}).format(date);
+
+const diaryImages = import.meta.glob<{ default: { src: string } }>(
+	"../assets/images/diary/**/*.{avif,gif,jpeg,jpg,png,webp}",
+	{ eager: true },
+);
+---
+
+{sortedItems.length === 0 ? (
+	<EmptyState
+		icon="material-symbols:edit-note-rounded"
+		title="还没有日记"
+		description="添加日记后，这里会按时间倒序展示记录。"
+	/>
+) : (
+	<section class="diary-timeline">
+		{sortedItems.map((item) => {
+			const imageSrc = resolveImageSrc(item.data.image, diaryImages);
+			return (
+				<article class="diary-card">
+					{imageSrc && <img src={imageSrc} alt={item.data.title} loading="lazy" />}
+					<div class="diary-body">
+						<time datetime={item.data.date.toISOString()}>{formatDate(item.data.date)}</time>
+						<h2>{item.data.title}</h2>
+						<div class="meta-row">
+							{item.data.mood && <span>{item.data.mood}</span>}
+							{item.data.weather && <span>{item.data.weather}</span>}
+						</div>
+						{item.data.excerpt && <p>{item.data.excerpt}</p>}
+						{item.data.tags.length > 0 && (
+							<div class="tag-row">
+								{item.data.tags.slice(0, 5).map((tag) => <span>#{tag}</span>)}
+							</div>
+						)}
+					</div>
+				</article>
+			);
+		})}
+	</section>
+)}
+
+<style>
+	.diary-timeline {
+		display: grid;
+		gap: 1rem;
+		color: var(--color-text);
+	}
+
+	.diary-card {
+		display: grid;
+		grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
+		overflow: hidden;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		background: var(--color-surface);
+	}
+
+	.diary-card img {
+		width: 100%;
+		height: 100%;
+		min-height: 13rem;
+		object-fit: cover;
+	}
+
+	.diary-body {
+		display: grid;
+		align-content: start;
+		gap: 0.75rem;
+		padding: 1.15rem;
+	}
+
+	time {
+		color: var(--primary);
+		font-weight: 850;
+	}
+
+	h2 {
+		margin: 0;
+		font-size: 1.25rem;
+		font-weight: 900;
+		letter-spacing: 0;
+	}
+
+	p {
+		margin: 0;
+		color: var(--color-muted);
+		line-height: 1.7;
+	}
+
+	.meta-row,
+	.tag-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+	}
+
+	.meta-row span,
+	.tag-row span {
+		border-radius: 999px;
+		background: var(--color-surface-soft);
+		padding: 0.28rem 0.6rem;
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 750;
+	}
+
+	@media (max-width: 620px) {
+		.diary-card {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

@@ -1,0 +1,93 @@
+---
+import { Icon } from "astro-icon/components";
+
+interface Props {
+	eyebrow?: string;
+	title: string;
+	description?: string;
+	icon?: string;
+}
+
+const { eyebrow, title, description, icon } = Astro.props;
+---
+
+<header class="page-header">
+	<div class="page-header__copy">
+		{eyebrow && <p class="page-header__eyebrow">{eyebrow}</p>}
+		<h1>{title}</h1>
+		{description && <p class="page-header__description">{description}</p>}
+	</div>
+	{icon && (
+		<div class="page-header__icon" aria-hidden="true">
+			<Icon name={icon} />
+		</div>
+	)}
+</header>
+
+<style>
+	.page-header {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 1rem;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		background: var(--color-surface);
+		padding: clamp(1.1rem, 3vw, 1.6rem);
+		color: var(--color-text);
+	}
+
+	.page-header__copy {
+		min-width: 0;
+	}
+
+	.page-header__eyebrow {
+		margin: 0 0 0.5rem;
+		color: var(--primary);
+		font-size: 0.78rem;
+		font-weight: 850;
+		letter-spacing: 0;
+		text-transform: uppercase;
+	}
+
+	h1 {
+		margin: 0;
+		font-size: clamp(1.9rem, 4vw, 3.2rem);
+		font-weight: 900;
+		letter-spacing: 0;
+		line-height: 1.05;
+		text-wrap: balance;
+	}
+
+	.page-header__description {
+		max-width: 42rem;
+		margin: 0.75rem 0 0;
+		color: var(--color-muted);
+		font-size: 1rem;
+		line-height: 1.75;
+	}
+
+	.page-header__icon {
+		display: grid;
+		width: clamp(3rem, 8vw, 4.5rem);
+		height: clamp(3rem, 8vw, 4.5rem);
+		flex: 0 0 auto;
+		place-items: center;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		background: var(--color-surface-soft);
+		color: var(--primary);
+	}
+
+	.page-header__icon :global(svg) {
+		font-size: clamp(1.65rem, 4vw, 2.35rem);
+	}
+
+	@media (max-width: 560px) {
+		.page-header {
+			align-items: start;
+			flex-direction: column-reverse;
+		}
+	}
+</style>

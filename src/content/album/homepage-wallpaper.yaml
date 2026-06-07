@@ -1,0 +1,9 @@
+title: 主页背景
+date: 2026-06-06
+location: 个人主页
+description: 当前主页使用的背景图，先作为相册的第一张记录。
+image: /wallpaper.jpg
+tags:
+  - 主页
+  - 背景
+featured: true

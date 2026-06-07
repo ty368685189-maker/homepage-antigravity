@@ -1,0 +1,14 @@
+---
+import HomeDashboard from "../components/HomeDashboard.astro";
+import Layout from "../layouts/Layout.astro";
+import { getCollection } from "astro:content";
+import { getSortedPosts } from "../utils/content-utils";
+
+const posts = await getSortedPosts();
+const anime = await getCollection("anime");
+const novels = await getCollection("novels");
+---
+
+<Layout>
+	<HomeDashboard posts={posts} anime={anime} novels={novels} />
+</Layout>

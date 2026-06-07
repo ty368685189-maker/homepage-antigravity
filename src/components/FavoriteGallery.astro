@@ -1,0 +1,290 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { Icon } from "astro-icon/components";
+import { resolveImageSrc } from "../utils/image-utils";
+import EmptyState from "./EmptyState.astro";
+
+type FavoriteItem = CollectionEntry<"novels"> | CollectionEntry<"anime">;
+
+interface Props {
+	kind: "anime" | "novel";
+	items: FavoriteItem[];
+}
+
+const { kind, items } = Astro.props;
+
+const normalizeStatus = (status: string) => {
+	if (status === "已看完" || status === "已读完") return "看过";
+	if (status === "追更中") return kind === "anime" ? "在看" : "在读";
+	return status || "想看";
+};
+
+const statusIcon = (status: string) => {
+	if (status === "在看" || status === "在读")
+		return "material-symbols:play-arrow-rounded";
+	if (status === "想看") return "material-symbols:favorite-rounded";
+	return "material-symbols:check-rounded";
+};
+
+const sortedItems = [...items].sort((a, b) => {
+	if (a.data.featured !== b.data.featured) {
+		return a.data.featured ? -1 : 1;
+	}
+	return b.data.rating - a.data.rating;
+});
+
+const favoriteImages = import.meta.glob<{ default: { src: string } }>(
+	"../assets/images/favorites/**/*.{avif,gif,jpeg,jpg,png,webp}",
+	{ eager: true },
+);
+
+const emptyState =
+	kind === "anime"
+		? {
+				icon: "material-symbols:movie-outline-rounded",
+				title: "还没有动漫收藏",
+				description: "添加条目后，这里会按推荐和评分展示追番记录。",
+			}
+		: {
+				icon: "material-symbols:menu-book-outline-rounded",
+				title: "还没有小说收藏",
+				description: "添加条目后，这里会按推荐和评分展示阅读记录。",
+			};
+---
+
+{sortedItems.length === 0 ? (
+	<EmptyState {...emptyState} />
+) : (
+	<section class="tracker-page">
+		<div class="tracker-grid">
+			{sortedItems.map((item) => {
+				const status = normalizeStatus(item.data.status);
+				const imageSrc = resolveImageSrc(item.data.image, favoriteImages);
+				return (
+					<article class="tracker-card" data-status={status}>
+						<div class="poster-wrap">
+							{imageSrc ? (
+								<img src={imageSrc} alt={item.data.title} loading="lazy" />
+							) : (
+								<div class="poster-placeholder">
+									<Icon name={kind === "anime" ? "material-symbols:movie-outline-rounded" : "material-symbols:menu-book-outline-rounded"} />
+								</div>
+							)}
+							<div class="status-badge">
+								<Icon name={statusIcon(status)} />
+								<span>{status}</span>
+							</div>
+							{item.data.rating > 0 && (
+								<div class="score-badge">
+									<Icon name="material-symbols:star-rounded" />
+									<span>{item.data.rating}</span>
+								</div>
+							)}
+							{item.data.progress && <div class="progress-text">{item.data.progress}</div>}
+						</div>
+
+						<div class="tracker-body">
+							<h2>{item.data.title}</h2>
+							<p class="summary">{item.data.description}</p>
+							<div class="info-list">
+								{item.data.year && (
+									<div>
+										<span>年份</span>
+										<strong>{item.data.year}</strong>
+									</div>
+								)}
+								{item.data.creator && (
+									<div>
+										<span>{kind === "anime" ? "制作" : "作者"}</span>
+										<strong>{item.data.creator}</strong>
+									</div>
+								)}
+							</div>
+							{item.data.tags.length > 0 && (
+								<div class="tag-row">
+									{item.data.tags.slice(0, 4).map((tag) => <span>{tag}</span>)}
+								</div>
+							)}
+						</div>
+					</article>
+				);
+			})}
+		</div>
+	</section>
+)}
+
+<style>
+	.tracker-page {
+		--tracker-chip: oklch(0.94 0.055 62);
+		display: grid;
+		gap: 1.35rem;
+		border-radius: 8px;
+		color: var(--color-text);
+	}
+
+	:global(.dark) .tracker-page {
+		--tracker-chip: oklch(0.28 0.045 62);
+	}
+
+	.tracker-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+		gap: 1.35rem 2rem;
+	}
+
+	.tracker-card {
+		display: grid;
+		grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
+		min-height: 17rem;
+		overflow: hidden;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		background: var(--color-surface);
+	}
+
+	.poster-wrap {
+		position: relative;
+		overflow: hidden;
+		background: var(--color-surface-soft);
+	}
+
+	.poster-wrap img,
+	.poster-placeholder {
+		width: 100%;
+		height: 100%;
+		min-height: 17rem;
+		object-fit: cover;
+	}
+
+	.poster-placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--primary);
+	}
+
+	.poster-placeholder :global(svg) {
+		font-size: 2.8rem;
+	}
+
+	.status-badge,
+	.score-badge {
+		position: absolute;
+		top: 0.65rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		border-radius: 0.45rem;
+		padding: 0.35rem 0.55rem;
+		font-size: 0.88rem;
+		font-weight: 850;
+	}
+
+	.status-badge {
+		left: 0.65rem;
+		background: oklch(0.94 0.06 150 / 0.95);
+		color: oklch(0.36 0.12 150);
+	}
+
+	.score-badge {
+		right: 0.65rem;
+		background: oklch(0.22 0.02 var(--hue) / 0.78);
+		color: white;
+	}
+
+	.score-badge :global(svg) {
+		color: oklch(0.82 0.17 82);
+	}
+
+	.progress-text {
+		position: absolute;
+		right: 0.65rem;
+		bottom: 0.65rem;
+		left: 0.65rem;
+		border-radius: 0.45rem;
+		background: oklch(0 0 0 / 0.42);
+		padding: 0.35rem 0.5rem;
+		color: white;
+		font-size: 0.85rem;
+		font-weight: 850;
+	}
+
+	.tracker-body {
+		display: grid;
+		grid-template-rows: auto 1fr auto auto;
+		gap: 0.85rem;
+		padding: 1.1rem 1.25rem;
+	}
+
+	.tracker-body h2 {
+		margin: 0;
+		font-size: 1.1rem;
+		font-weight: 900;
+		letter-spacing: 0;
+		line-height: 1.35;
+	}
+
+	.summary {
+		margin: 0;
+		color: var(--color-muted);
+		line-height: 1.6;
+	}
+
+	.info-list {
+		display: grid;
+		gap: 0.35rem;
+	}
+
+	.info-list div {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.info-list span {
+		color: var(--color-muted);
+		font-weight: 750;
+	}
+
+	.info-list strong {
+		font-weight: 850;
+		text-align: right;
+	}
+
+	.tag-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+
+	.tag-row span {
+		border-radius: 0.35rem;
+		background: var(--tracker-chip);
+		padding: 0.22rem 0.5rem;
+		color: var(--color-muted);
+		font-size: 0.82rem;
+		font-weight: 750;
+	}
+
+	@media (max-width: 700px) {
+		.tracker-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.tracker-card {
+			grid-template-columns: 9.5rem minmax(0, 1fr);
+			min-height: 14rem;
+		}
+
+		.poster-wrap img,
+		.poster-placeholder {
+			min-height: 14rem;
+		}
+	}
+
+	@media (max-width: 520px) {
+		.tracker-card {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
