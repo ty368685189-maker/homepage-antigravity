@@ -1,0 +1,77 @@
+name: Deploy static site
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Trigger source
+        required: false
+        type: string
+      commit_sha:
+        description: Commit SHA to deploy
+        required: false
+        type: string
+      requested_at:
+        description: Request timestamp
+        required: false
+        type: string
+
+concurrency:
+  group: deploy-static-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HOMEPAGE_DEPLOY_HOST: ${{ secrets.HOMEPAGE_DEPLOY_HOST }}
+      HOMEPAGE_DEPLOY_USER: ${{ secrets.HOMEPAGE_DEPLOY_USER || 'root' }}
+      HOMEPAGE_DEPLOY_PORT: ${{ secrets.HOMEPAGE_DEPLOY_PORT }}
+      HOMEPAGE_DEPLOY_SITE_URL: ${{ secrets.HOMEPAGE_DEPLOY_SITE_URL || 'https://blog.yugold.top/' }}
+    steps:
+      - name: Check deploy secrets
+        env:
+          SSH_KEY: ${{ secrets.HOMEPAGE_DEPLOY_SSH_KEY }}
+        run: |
+          test -n "$HOMEPAGE_DEPLOY_HOST"
+          test -n "$SSH_KEY"
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.commit_sha || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build static site
+        run: pnpm build
+        env:
+          SITE_URL: ${{ env.HOMEPAGE_DEPLOY_SITE_URL }}
+
+      - name: Prepare SSH key
+        env:
+          SSH_KEY: ${{ secrets.HOMEPAGE_DEPLOY_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/homepage_deploy_key
+          chmod 600 ~/.ssh/homepage_deploy_key
+          ssh-keyscan -p "${HOMEPAGE_DEPLOY_PORT:-22}" "$HOMEPAGE_DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy built dist to VPS
+        run: node scripts/deploy-static-safe.js --apply --skip-build
+        env:
+          HOMEPAGE_DEPLOY_KEY: /home/runner/.ssh/homepage_deploy_key

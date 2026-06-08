@@ -1,6 +1,6 @@
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
-import { rm } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import request from "supertest";
 import { createApp } from "./server.js";
@@ -43,6 +43,10 @@ test("supports login, content edits, uploads, and publish status checks", async 
 	const collectionsResponse = await agent.get(`${adminBasePath}/api/collections`);
 	assert.equal(collectionsResponse.status, 200);
 	assert.ok(collectionsResponse.body.collections.length >= 5);
+	assert.equal(
+		collectionsResponse.body.collections.find(collection => collection.id === "posts")?.sortField,
+		"published",
+	);
 
 	const entryResponse = await agent.get(`${adminBasePath}/api/entry`).query({
 		collection: "posts",
@@ -57,6 +61,7 @@ test("supports login, content edits, uploads, and publish status checks", async 
 		data: {
 			title: "后台自动化测试文章",
 			published: "2026-06-07",
+			updated: "",
 			description: "测试保存是否正常。",
 			image: "",
 			tags: "测试, 后台",
@@ -70,9 +75,41 @@ test("supports login, content edits, uploads, and publish status checks", async 
 	assert.equal(saveResponse.status, 200);
 	assert.equal(saveResponse.body.entry.slug, tempSlug);
 
+	const savedMarkdown = await readFile(
+		resolve(projectRoot, "src", "content", "posts", `${tempSlug}.md`),
+		"utf8",
+	);
+	assert.match(savedMarkdown, /published: 2026-06-07T00:00:00\.000Z/);
+	assert.doesNotMatch(savedMarkdown, /published: '2026-06-07'/);
+	assert.doesNotMatch(savedMarkdown, /updated: ''/);
+
 	const listResponse = await agent.get(`${adminBasePath}/api/entries`).query({ collection: "posts" });
 	assert.equal(listResponse.status, 200);
 	assert.ok(listResponse.body.entries.some(item => item.slug === tempSlug));
+	assert.ok(
+		listResponse.body.entries.some(
+			item => item.slug === "hello-world" && item.title === "我的第一篇博客",
+		),
+	);
+
+	const slugifyResponse = await agent.get(`${adminBasePath}/api/slugify`).query({
+		value: "完美世界",
+	});
+	assert.equal(slugifyResponse.status, 200);
+	assert.equal(slugifyResponse.body.slug, "完美世界");
+
+	const animeListResponse = await agent.get(`${adminBasePath}/api/entries`).query({
+		collection: "anime",
+	});
+	assert.equal(animeListResponse.status, 200);
+	assert.ok(animeListResponse.body.entries.some(item => item.slug === "完美世界"));
+
+	const animeEntryResponse = await agent.get(`${adminBasePath}/api/entry`).query({
+		collection: "anime",
+		slug: "完美世界",
+	});
+	assert.equal(animeEntryResponse.status, 200);
+	assert.equal(animeEntryResponse.body.entry.meta.title, "完美世界");
 
 	const uploadResponse = await agent
 		.post(`${adminBasePath}/api/upload`)

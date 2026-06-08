@@ -14,6 +14,8 @@ const skipBuild = args.has("--skip-build");
 
 const deployHost = process.env.HOMEPAGE_DEPLOY_HOST;
 const deployUser = process.env.HOMEPAGE_DEPLOY_USER || "root";
+const deployPort = process.env.HOMEPAGE_DEPLOY_PORT || "";
+const deployKey = process.env.HOMEPAGE_DEPLOY_KEY || "";
 const siteUrl = process.env.HOMEPAGE_DEPLOY_SITE_URL || "https://blog.yugold.top/";
 const sshTarget = deployHost ? `${deployUser}@${deployHost}` : "";
 
@@ -85,6 +87,9 @@ function printUsage() {
 	console.log("Options:");
 	console.log("  --apply       upload and cleanly replace the Caddy static root");
 	console.log("  --skip-build  package the existing dist/ without rebuilding");
+	console.log("");
+	console.log("Environment:");
+	console.log("  HOMEPAGE_DEPLOY_PORT  optional SSH port");
 	console.log("");
 }
 
@@ -173,6 +178,24 @@ if (!deployHost) {
 	process.exit(0);
 }
 
+function sshArgs(command) {
+	return [
+		...(deployKey ? ["-i", deployKey, "-o", "IdentitiesOnly=yes"] : []),
+		...(deployPort ? ["-p", deployPort] : []),
+		sshTarget,
+		command,
+	];
+}
+
+function scpArgs(source, target) {
+	return [
+		...(deployKey ? ["-i", deployKey, "-o", "IdentitiesOnly=yes"] : []),
+		...(deployPort ? ["-P", deployPort] : []),
+		source,
+		target,
+	];
+}
+
 const command = remoteCommand(archiveName);
 
 if (!apply) {
@@ -185,16 +208,16 @@ if (!apply) {
 }
 
 console.log("");
-console.log(`Checking server before upload: ${sshTarget}`);
-run("ssh", [sshTarget, "uptime && free -m | head -2 && systemctl is-active caddy.service"]);
+console.log(`Checking server before upload: ${sshTarget}${deployPort ? `:${deployPort}` : ""}`);
+run("ssh", sshArgs("uptime && free -m | head -2 && systemctl is-active caddy.service"));
 
 console.log("");
 console.log("Uploading static archive...");
-run("scp", [archivePath, `${sshTarget}:/tmp/${archiveName}`]);
+run("scp", scpArgs(archivePath, `${sshTarget}:/tmp/${archiveName}`));
 
 console.log("");
 console.log("Replacing Caddy static root on the server...");
-run("ssh", [sshTarget, command]);
+run("ssh", sshArgs(command));
 
 console.log("");
 console.log("Safe static deploy completed.");

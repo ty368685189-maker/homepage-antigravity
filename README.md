@@ -19,7 +19,9 @@ corepack pnpm@9.14.4 dev
 | --- | --- |
 | `corepack pnpm@9.14.4 dev` | 启动本地开发服务器 |
 | `corepack pnpm@9.14.4 build` | 构建静态站点并生成 Pagefind 索引 |
+| `corepack pnpm@9.14.4 deploy:admin` | 本地检查并演练后台服务代码部署，不上传服务器 |
 | `corepack pnpm@9.14.4 deploy:static` | 本地构建并演练安全静态部署，不上传服务器 |
+| `corepack pnpm@9.14.4 deploy:admin -- --apply` | 只上传 `admin-server/`，备份后重启后台服务 |
 | `corepack pnpm@9.14.4 deploy:static -- --apply` | 本地构建后上传静态包，备份线上 `dist/` 再干净替换 |
 | `corepack pnpm@9.14.4 release:static` | 构建并打包可上传到 VPS 的静态站点 |
 | `corepack pnpm@9.14.4 release:server` | 打包可上传到 VPS 的整套服务器源码 |
@@ -48,6 +50,18 @@ http://127.0.0.1:4310/admin
 ```
 
 它会提供登录、内容编辑、图片上传和一键发布能力，直接操作当前仓库里的 Markdown / YAML 文件。
+
+小内存 VPS 不建议在后台直接执行 `astro build`。推荐把后台发布配置成 GitHub 云端发布：后台把 `src/content` 和 `public/uploads` 同步为 GitHub commit，再触发 GitHub Actions 构建并把 `dist/` 上传回 VPS。需要在后台环境变量中设置：
+
+```ini
+ADMIN_PUBLISH_MODE=github
+ADMIN_GITHUB_REPO=ty368685189-maker/homepage-antigravity
+ADMIN_GITHUB_BRANCH=main
+ADMIN_GITHUB_WORKFLOW=deploy-static.yml
+ADMIN_GITHUB_TOKEN=github_pat_xxx
+```
+
+这个 token 至少需要当前仓库的 `Contents: Read and write`、`Actions: Read and write` 权限。同时在 GitHub 仓库 Secrets 中设置 `HOMEPAGE_DEPLOY_HOST`、`HOMEPAGE_DEPLOY_SSH_KEY`，可选设置 `HOMEPAGE_DEPLOY_USER`、`HOMEPAGE_DEPLOY_PORT`、`HOMEPAGE_DEPLOY_SITE_URL`。配置好后，后台点“云端发布”即可。
 
 ## 部署
 
@@ -82,6 +96,16 @@ corepack pnpm@9.14.4 deploy:static -- --apply
 ```
 
 脚本不会保存服务器密码；真正上传时由系统 SSH / SCP 提示输入密码或使用你本机已有的 SSH key。
+
+如果改的是 `admin-server/` 后台服务代码，使用后台安全部署脚本。它只替换服务器上的 `admin-server/` 目录，会先备份旧目录，只重启 `homepage-lite-admin`，不会在 VPS 上安装依赖、构建项目、替换前台 `dist/` 或重启 Caddy：
+
+```powershell
+$env:HOMEPAGE_DEPLOY_HOST = "your-server-ip"
+# 如果服务器 SSH 不是 22 端口，再设置 HOMEPAGE_DEPLOY_PORT
+corepack pnpm@9.14.4 deploy:admin
+corepack pnpm@9.14.4 deploy:admin -- --preflight
+corepack pnpm@9.14.4 deploy:admin -- --apply
+```
 
 部署前建议设置真实站点地址：
 

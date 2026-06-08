@@ -1,8 +1,10 @@
-import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, open, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, relative, resolve, sep } from "node:path";
 import matter from "gray-matter";
 import YAML from "yaml";
 import { backupsDir, collections, getCollectionConfig, projectRoot } from "./config.js";
+
+const frontmatterReadLimit = 64 * 1024;
 
 function timestamp() {
 	const now = new Date();
@@ -31,8 +33,8 @@ function ensureInsideProject(targetPath) {
 
 function slugify(value) {
 	return String(value || "")
-		.normalize("NFKD")
-		.replace(/[^\w\s-]/g, "")
+		.normalize("NFKC")
+		.replace(/[^\p{Letter}\p{Number}\s_-]/gu, "")
 		.trim()
 		.toLowerCase()
 		.replace(/[\s_-]+/g, "-")
@@ -45,6 +47,17 @@ function normalizeDateInput(value) {
 	}
 
 	return String(value).slice(0, 10);
+}
+
+function toMarkdownDate(value, label) {
+	const normalized = normalizeDateInput(value);
+	const date = new Date(`${normalized}T00:00:00.000Z`);
+
+	if (!normalized || Number.isNaN(date.getTime())) {
+		throw new Error(`${label} 不是有效日期`);
+	}
+
+	return date;
 }
 
 function cloneDefaultValue(value) {
@@ -65,7 +78,7 @@ function getDefaultData(collection) {
 	);
 }
 
-function sanitizeValue(field, rawValue) {
+function sanitizeValue(collection, field, rawValue) {
 	if (field.type === "checkbox") {
 		return Boolean(rawValue);
 	}
@@ -96,7 +109,17 @@ function sanitizeValue(field, rawValue) {
 	}
 
 	if (field.type === "date") {
-		return normalizeDateInput(rawValue);
+		const normalized = normalizeDateInput(rawValue);
+
+		if (!normalized) {
+			return undefined;
+		}
+
+		if (collection.storage === "markdown") {
+			return toMarkdownDate(normalized, field.label);
+		}
+
+		return normalized;
 	}
 
 	return String(rawValue ?? "");
@@ -106,7 +129,7 @@ function sanitizeData(collection, inputData) {
 	const sanitized = {};
 
 	for (const field of collection.fields) {
-		const value = sanitizeValue(field, inputData[field.name]);
+		const value = sanitizeValue(collection, field, inputData[field.name]);
 
 		if (field.required && (value === "" || value === undefined)) {
 			throw new Error(`${field.label} 不能为空`);
@@ -176,6 +199,31 @@ async function parseMarkdownFile(filePath) {
 	};
 }
 
+async function parseMarkdownFrontmatter(filePath) {
+	const file = await open(filePath, "r");
+
+	try {
+		const buffer = Buffer.alloc(frontmatterReadLimit);
+		const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+		const head = buffer.subarray(0, bytesRead).toString("utf8");
+
+		if (!head.startsWith("---")) {
+			return {};
+		}
+
+		const closingIndex = head.indexOf("\n---", 3);
+
+		if (closingIndex === -1) {
+			return (await parseMarkdownFile(filePath)).data;
+		}
+
+		const frontmatter = head.slice(0, closingIndex + "\n---".length);
+		return matter(`${frontmatter}\n`).data || {};
+	} finally {
+		await file.close();
+	}
+}
+
 async function parseYamlFile(filePath) {
 	const raw = await readFile(filePath, "utf8");
 	return YAML.parse(raw) || {};
@@ -195,25 +243,52 @@ function serializeYaml(data) {
 
 async function readDirectoryEntries(collection) {
 	const fileNames = await readdir(collection.directory);
-	const entries = [];
-
-	for (const fileName of fileNames) {
-		if (extname(fileName) !== collection.extension) {
-			continue;
-		}
-
-		const slug = basename(fileName, collection.extension);
-		const entry = await readEntry(collection.id, slug);
-		entries.push(entry);
-	}
+	const entries = await Promise.all(
+		fileNames
+			.filter(fileName => extname(fileName) === collection.extension)
+			.map(async fileName => {
+				const slug = basename(fileName, collection.extension);
+				return readEntrySummary(collection, slug);
+			}),
+	);
 
 	return sortEntries(collection, entries);
+}
+
+async function readEntrySummary(collection, slug) {
+	const filePath = getEntryPath(collection, slug);
+	const fileStats = await stat(filePath).catch(() => null);
+
+	if (!fileStats?.isFile()) {
+		throw new Error("内容不存在");
+	}
+
+	if (collection.storage === "markdown") {
+		return {
+			collection: collection.id,
+			slug: slugify(slug),
+			meta: { ...getDefaultData(collection), ...(await parseMarkdownFrontmatter(filePath)) },
+			updatedAt: fileStats.mtime.toISOString(),
+		};
+	}
+
+	if (collection.storage === "yaml") {
+		return {
+			collection: collection.id,
+			slug: slugify(slug),
+			meta: { ...getDefaultData(collection), ...(await parseYamlFile(filePath)) },
+			updatedAt: fileStats.mtime.toISOString(),
+		};
+	}
+
+	return readEntry(collection.id, slug);
 }
 
 export function getCollectionsMeta() {
 	return collections.map(collection => ({
 		id: collection.id,
 		label: collection.label,
+		sortField: collection.sortField || "",
 		supportsCreate: collection.supportsCreate,
 		supportsDelete: collection.supportsDelete,
 		fields: collection.fields,

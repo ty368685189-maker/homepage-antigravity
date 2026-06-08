@@ -39,6 +39,10 @@ button {
 	border: 0;
 }
 
+button:disabled {
+	cursor: wait;
+}
+
 input,
 textarea,
 select {
@@ -178,6 +182,12 @@ textarea {
 .entry-item.active {
 	background: rgba(17, 100, 102, 0.12);
 	border-color: rgba(17, 100, 102, 0.24);
+}
+
+.collection-item.loading,
+.entry-item.loading {
+	background: rgba(208, 139, 28, 0.14);
+	border-color: rgba(208, 139, 28, 0.28);
 }
 
 .entry-title,
@@ -330,6 +340,12 @@ textarea {
 	cursor: wait;
 }
 
+.collection-item:disabled,
+.entry-item:disabled {
+	opacity: 0.72;
+	cursor: wait;
+}
+
 .upload-button {
 	position: relative;
 	overflow: hidden;
@@ -372,6 +388,10 @@ textarea {
 	background: #b63f28;
 }
 
+.status-dot.local-only {
+	background: var(--accent);
+}
+
 .log-panel {
 	margin-top: 18px;
 	border-radius: 20px;
@@ -393,6 +413,15 @@ textarea {
 .empty {
 	color: var(--muted);
 	padding: 18px 8px;
+}
+
+.loading-state {
+	color: var(--accent-strong);
+	background: rgba(17, 100, 102, 0.08);
+	border: 1px dashed rgba(17, 100, 102, 0.24);
+	border-radius: 14px;
+	padding: 18px 14px;
+	font-size: 14px;
 }
 
 @media (max-width: 1180px) {

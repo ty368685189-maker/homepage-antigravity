@@ -37,6 +37,71 @@ corepack pnpm@9.14.4 deploy:static -- --apply
 
 它不会在 VPS 上执行 `pnpm install`，不会在 VPS 上执行 `pnpm build`，也不会重启 Caddy 或后台服务。
 
+如果你想要后台点一下就发布，同时又不想把 VPS 卡死，推荐开启 **GitHub 云端发布**：
+
+- 后台只负责保存内容、上传图片
+- 点发布后，后台把 `src/content` 和 `public/uploads` 同步到 GitHub
+- GitHub Actions 在云端构建网站
+- 构建好的 `dist/` 再上传到 VPS
+- VPS 只接收成品，不跑 `astro build`
+
+后台服务器的 `/etc/homepage-admin.env` 需要加：
+
+```ini
+ADMIN_PUBLISH_MODE=github
+ADMIN_GITHUB_REPO=ty368685189-maker/homepage-antigravity
+ADMIN_GITHUB_BRANCH=main
+ADMIN_GITHUB_WORKFLOW=deploy-static.yml
+ADMIN_GITHUB_TOKEN=github_pat_xxx
+```
+
+这个 token 至少需要当前仓库的 `Contents: Read and write`、`Actions: Read and write` 权限。
+
+GitHub 仓库的 `Settings -> Secrets and variables -> Actions` 需要加：
+
+```text
+HOMEPAGE_DEPLOY_HOST=你的服务器IP
+HOMEPAGE_DEPLOY_SSH_KEY=能登录 VPS 的 SSH 私钥内容
+HOMEPAGE_DEPLOY_USER=root
+HOMEPAGE_DEPLOY_SITE_URL=https://blog.yugold.top/
+```
+
+如果你的 SSH 不是 22 端口，再加：
+
+```text
+HOMEPAGE_DEPLOY_PORT=你的SSH端口
+```
+
+如果这次改的是 `admin-server/` 后台服务代码，比如后台页面卡顿、保存逻辑、上传逻辑这些，不走 `deploy:static`，而是走后台安全部署：
+
+```powershell
+cd E:\homepage-antigravity
+$env:HOMEPAGE_DEPLOY_HOST = "your-server-ip"
+# 如果服务器 SSH 不是 22 端口，再设置：
+# $env:HOMEPAGE_DEPLOY_PORT = "你的SSH端口"
+corepack pnpm@9.14.4 deploy:admin
+```
+
+上面也是演练，只会本地检查和打包，不上传服务器。确认输出没问题后，再真正更新后台服务：
+
+```powershell
+corepack pnpm@9.14.4 deploy:admin -- --preflight
+corepack pnpm@9.14.4 deploy:admin -- --apply
+```
+
+`--preflight` 是只读预检，只会登录服务器检查目录、后台服务状态和本机后台接口，不上传文件，也不重启服务。它通过后，再执行 `--apply`。
+
+这个后台脚本只做这几件事：
+
+- 本地先跑后台检查和测试
+- 只打包 `admin-server/`
+- 上传前不碰服务器；真正上线时也只替换服务器上的 `admin-server/`
+- 服务器上先备份旧后台目录
+- 只重启 `homepage-lite-admin`
+- 重启失败会把旧后台目录恢复回去
+
+它不会在 VPS 上执行 `pnpm install`，不会在 VPS 上执行 `pnpm build`，不会替换前台 `dist/`，也不会重启 Caddy。
+
 下面从第一节开始，是“首次迁移、重装后台、重配服务器”才需要看的完整教程。日常小改优先不要走下面的源码部署流程。
 
 ## 一、这次最终要跑成什么样

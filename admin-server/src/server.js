@@ -188,16 +188,20 @@ export function createApp() {
 		}),
 	);
 
-	router.get("/api/publish/status", requireAuth, (req, res) => {
-		res.json({ publish: getPublishState() });
-	});
+	router.get(
+		"/api/publish/status",
+		requireAuth,
+		asyncHandler(async (req, res) => {
+			res.json({ publish: await getPublishState() });
+		}),
+	);
 
 	router.post(
 		"/api/publish",
 		requireAuth,
 		asyncHandler(async (req, res) => {
 			startPublish().catch(() => {});
-			res.json({ ok: true, publish: getPublishState() });
+			res.json({ ok: true, publish: await getPublishState() });
 		}),
 	);
 
