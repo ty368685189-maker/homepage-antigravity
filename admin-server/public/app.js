@@ -50,7 +50,22 @@ function getCollectionMeta() {
 function setNotice(message, type = "info") {
 	state.notice = message;
 	state.noticeType = type;
+
+	const noticeSlot = root.querySelector("[data-notice-slot]");
+	if (noticeSlot) {
+		noticeSlot.innerHTML = renderNotice();
+		return;
+	}
+
 	render();
+}
+
+function renderNotice() {
+	if (!state.notice) {
+		return "";
+	}
+
+	return `<div class="notice ${state.noticeType}">${escapeHtml(state.notice)}</div>`;
 }
 
 function previewSource(pathValue) {
@@ -237,11 +252,7 @@ function renderLogin() {
 					<label for="login-password">密码</label>
 					<input id="login-password" name="password" type="password" />
 				</div>
-				${
-					state.notice
-						? `<div class="notice ${state.noticeType}">${escapeHtml(state.notice)}</div>`
-						: ""
-				}
+				<div data-notice-slot>${renderNotice()}</div>
 				<button class="button primary" type="submit">登录后台</button>
 			</form>
 		</div>
@@ -273,11 +284,7 @@ function renderApp() {
 						<button class="button subtle" id="logout-button">退出登录</button>
 					</div>
 				</div>
-				${
-					state.notice
-						? `<div class="notice ${state.noticeType}">${escapeHtml(state.notice)}</div>`
-						: ""
-				}
+				<div data-notice-slot>${renderNotice()}</div>
 				<div class="layout">
 					<section class="panel">
 						<div class="panel-head">

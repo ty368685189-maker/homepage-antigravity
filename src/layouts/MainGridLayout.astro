@@ -8,11 +8,7 @@ import { Icon } from "astro-icon/components";
 import ImageWrapper from "../components/misc/ImageWrapper.astro";
 import TOC from "../components/widget/TOC.astro";
 import { siteConfig } from "../config";
-import {
-	BANNER_HEIGHT,
-	BANNER_HEIGHT_EXTEND,
-	MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
-} from "../constants/constants";
+import { MAIN_PANEL_OVERLAPS_BANNER_HEIGHT } from "../constants/constants";
 import { pathsEqual, url } from "../utils/url-utils";
 import Layout from "./Layout.astro";
 
@@ -39,16 +35,11 @@ const hasBannerLink = !!siteConfig.banner.credit.url;
 
 const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
 
-// 动态计算非首页和首页的可见高度与重叠度，最大化非首页的画面展示范围
-const bannerVisibleHeight = isHomePage ? BANNER_HEIGHT : 45; // 非首页可见画幅从 35vh 增大到 45vh
-const bannerOverlap = isHomePage ? MAIN_PANEL_OVERLAPS_BANNER_HEIGHT : 1.5; // 非首页卡片重叠调小至 1.5rem，留出呼吸感
-const bannerTopOffset = isHomePage
-	? BANNER_HEIGHT_EXTEND
-	: 65 - bannerVisibleHeight; // 非首页向上偏移调小至 20vh
-
-const mainPanelTop = siteConfig.banner.enable
-	? `calc(${bannerVisibleHeight}vh - ${bannerOverlap}rem)`
-	: "5.5rem";
+const bannerVisibleHeight = isHomePage ? 54 : 34;
+const bannerOverlap = isHomePage ? MAIN_PANEL_OVERLAPS_BANNER_HEIGHT : 2.25;
+const mainPanelStyle = siteConfig.banner.enable
+	? `margin-top: -${bannerOverlap}rem`
+	: "margin-top: 1rem";
 ---
 
 <Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle}>
@@ -56,14 +47,15 @@ const mainPanelTop = siteConfig.banner.enable
 
 <!-- Navbar -->
 <slot slot="head" name="head"></slot>
-<div id="top-row" class="z-50 pointer-events-none relative w-full transition-all duration-700" class:list={[""]}>
-    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-all">
+<div id="top-row" class="z-50 pointer-events-none w-full" style="position: fixed; top: 0; left: 0; right: 0; z-index: 50;">
+    <div id="navbar-wrapper" class="pointer-events-auto transition-all">
         <Navbar></Navbar>
     </div>
 </div>
+<div aria-hidden="true" class="pointer-events-none h-[5.25rem] md:h-24"></div>
 
 <!-- Banner -->
-{siteConfig.banner.enable && <div id="banner-wrapper" class={`absolute z-10 w-full transition duration-700 overflow-hidden`} style={`top: -${bannerTopOffset}vh`}>
+{siteConfig.banner.enable && <div id="banner-wrapper" class="relative z-10 w-full overflow-hidden" style={`height: ${bannerVisibleHeight}vh`}>
     <div class="absolute inset-0" style="-webkit-mask-image: linear-gradient(to bottom, #000 90%, transparent 100%)">
         <ImageWrapper id="banner" alt="Banner image of the blog" class:list={["object-cover h-full transition duration-700 opacity-0 scale-105"]}
                       src={siteConfig.banner.src} position={siteConfig.banner.position}
@@ -120,7 +112,7 @@ const mainPanelTop = siteConfig.banner.enable
 </div>}
 
 <!-- Main content -->
-<div class="absolute w-full z-30 pointer-events-none" style={`top: ${mainPanelTop}`}>
+<div class="relative w-full z-30 pointer-events-none" style={mainPanelStyle}>
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
         <div id="main-grid" class="transition duration-700 w-full left-0 right-0 grid grid-cols-[17.5rem_auto] grid-rows-[auto_1fr_auto] lg:grid-rows-[auto]

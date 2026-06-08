@@ -11,6 +11,7 @@
     "check": "astro check",
     "clean": "node scripts/clean-build-artifacts.js",
     "build": "node scripts/clean-build-artifacts.js && astro build && pagefind --site dist",
+    "deploy:static": "node scripts/deploy-static-safe.js",
     "release:static": "node scripts/clean-build-artifacts.js && astro build && pagefind --site dist && node scripts/package-static-release.js",
     "release:server": "node scripts/package-server-release.js",
     "preview": "astro preview --host 127.0.0.1 --port 4323",

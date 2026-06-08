@@ -8,7 +8,7 @@
 	--accent: #116466;
 	--accent-strong: #0b4d4f;
 	--danger: #b63f28;
-	--shadow: 0 22px 70px rgba(34, 26, 18, 0.08);
+	--shadow: 0 10px 30px rgba(34, 26, 18, 0.06);
 	--radius: 18px;
 	--radius-sm: 12px;
 	--mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
@@ -23,10 +23,7 @@ body {
 	margin: 0;
 	font-family: var(--sans);
 	color: var(--text);
-	background:
-		radial-gradient(circle at top left, rgba(17, 100, 102, 0.16), transparent 28%),
-		radial-gradient(circle at bottom right, rgba(182, 63, 40, 0.12), transparent 24%),
-		linear-gradient(180deg, #f7f3ec 0%, #ece7de 100%);
+	background: #f4f1ea;
 	min-height: 100vh;
 }
 
@@ -76,7 +73,6 @@ textarea {
 .panel,
 .log-panel {
 	background: var(--panel);
-	backdrop-filter: blur(14px);
 	box-shadow: var(--shadow);
 }
 
@@ -133,11 +129,12 @@ textarea {
 
 .panel {
 	border-radius: var(--radius);
-	border: 1px solid rgba(255, 255, 255, 0.4);
+	border: 1px solid var(--line);
 	padding: 16px;
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
+	contain: content;
 }
 
 .panel h2 {
@@ -165,6 +162,7 @@ textarea {
 	gap: 10px;
 	overflow: auto;
 	padding-right: 2px;
+	contain: content;
 }
 
 .collection-item,
@@ -198,6 +196,7 @@ textarea {
 	flex-direction: column;
 	gap: 14px;
 	overflow: auto;
+	contain: content;
 }
 
 .notice {

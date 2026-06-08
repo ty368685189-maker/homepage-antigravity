@@ -37,9 +37,13 @@ const isPublic = src.startsWith("/");
 // Astro image optimization needs statically discoverable import targets.
 let img: ImageMetadata | undefined;
 if (isLocal) {
-	const files = import.meta.glob<ImageMetadata>("../../**", {
-		import: "default",
-	});
+	const files = import.meta.glob<ImageMetadata>(
+		[
+			"../../**/*.{avif,gif,jpeg,jpg,png,webp}",
+			"!../../assets/images/favorites/**/*.png",
+		],
+		{ import: "default" },
+	);
 	let normalizedPath = path
 		.normalize(path.join("../../", basePath, src))
 		.replace(/\\/g, "/");

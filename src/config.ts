@@ -45,6 +45,15 @@ export const navBarConfig: NavBarConfig = {
 		LinkPreset.About,
 		LinkPreset.Archive,
 		{
+			name: "内容收藏",
+			children: [
+				{ name: "动漫", url: "/anime/" },
+				{ name: "日记", url: "/diary/" },
+				{ name: "相册", url: "/album/" },
+				{ name: "小说", url: "/novels/" },
+			],
+		},
+		{
 			name: "联系方式",
 			children: [
 				{
@@ -71,15 +80,6 @@ export const navBarConfig: NavBarConfig = {
 					url: "https://www.toutiao.com/c/user/token/CizGmNa3i8pDMqiA6ALm_pW_ex-L2eqrUoN-frh2sQTinhZfUNtBSDouFwEkfBpJCjwAAAAAAAAAAAAAUHEuYlGhb3aYT3-y13jpfV6hrVMcqjHTOluRTZwDVR6Jd6T3_-LbS2mV5GWFnkdOPXAQsv2RDhjDxYPqBCIBAzcwHZc=/?source=mine_profile",
 					external: true,
 				},
-			],
-		},
-		{
-			name: "内容收藏",
-			children: [
-				{ name: "动漫", url: "/anime/" },
-				{ name: "日记", url: "/diary/" },
-				{ name: "相册", url: "/album/" },
-				{ name: "小说", url: "/novels/" },
 			],
 		},
 	],

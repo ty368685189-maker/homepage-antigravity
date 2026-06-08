@@ -34,7 +34,7 @@ const sortedItems = [...items].sort((a, b) => {
 });
 
 const favoriteImages = import.meta.glob<{ default: { src: string } }>(
-	"../assets/images/favorites/**/*.{avif,gif,jpeg,jpg,png,webp}",
+	"../assets/images/favorites/**/*.{avif,gif,jpeg,jpg,webp}",
 	{ eager: true },
 );
 

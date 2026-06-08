@@ -9,6 +9,36 @@
 
 这次我们只做和这个项目有关的替换，不去瞎动整台服务器。
 
+## 零、现在日常更新先看这里
+
+如果网站已经能正常访问，只是改首页、导航、样式、文章、图片这些内容，**不要在服务器上构建项目**，也不要重新安装依赖。
+
+日常更新只走安全静态部署：
+
+```powershell
+cd E:\homepage-antigravity
+$env:HOMEPAGE_DEPLOY_HOST = "your-server-ip"
+corepack pnpm@9.14.4 deploy:static
+```
+
+上面这条只是演练，不上传服务器。确认输出没问题后，再真正上线：
+
+```powershell
+corepack pnpm@9.14.4 deploy:static -- --apply
+```
+
+这个脚本只做这几件事：
+
+- 本地构建并打包 `dist/`
+- 服务器上自动读取 Caddy 当前指向的静态目录
+- 先备份线上 `dist/`
+- 解压新静态文件覆盖
+- 做一次线上访问检查
+
+它不会在 VPS 上执行 `pnpm install`，不会在 VPS 上执行 `pnpm build`，也不会重启 Caddy 或后台服务。
+
+下面从第一节开始，是“首次迁移、重装后台、重配服务器”才需要看的完整教程。日常小改优先不要走下面的源码部署流程。
+
 ## 一、这次最终要跑成什么样
 
 迁移完成后，服务器会是这个结构：
@@ -93,13 +123,16 @@ sudo cp /etc/homepage-admin.env /etc/homepage-admin.env.backup-$(date +%Y%m%d-%H
 
 如果这条命令提示文件不存在，可以直接跳过。
 
-## 五、这次上传到服务器，推荐你用哪种方式
+## 五、首次迁移时，上传到服务器推荐你用哪种方式
+
+注意：这一节只适合首次迁移、服务器目录损坏、后台服务需要重装这些情况。  
+如果只是日常改网页内容，用最上面的 `deploy:static`。
 
 你现在有两种上传方式：
 
 ### 方式 A：直接上传打包好的服务器源码
 
-这是你现在最省脑子的方式，我也已经把命令给你准备好了。
+这是首次迁移时比较省脑子的方式，我也已经把命令给你准备好了。
 
 你在本地 PowerShell 执行：
 
@@ -238,9 +271,10 @@ cd /var/www/homepage
 corepack pnpm@9.14.4 install --frozen-lockfile
 ```
 
-## 十、先构建前台
+## 十、首次迁移时先构建前台
 
-执行：
+这一节只适合首次迁移或服务器目录重建。日常更新不要在这里构建，回到最上面的 `deploy:static`。  
+首次迁移时执行：
 
 ```sh
 cd /var/www/homepage
@@ -464,17 +498,19 @@ https://admin.yugold.top
 
 ## 十八、以后如果是改代码，不是改内容
 
-如果你改的是项目代码，那就还是要重新上传项目并重新构建。
+如果你改的是前台页面、导航、样式、文章结构这些代码，也优先走本地安全静态部署。  
+不要在 VPS 上构建项目。
 
-服务器上执行：
+本地 PowerShell：
 
-```sh
-cd /var/www/homepage
-corepack pnpm@9.14.4 install --frozen-lockfile
-SITE_URL=https://blog.yugold.top/ corepack pnpm@9.14.4 build
-sudo systemctl restart homepage-lite-admin
-sudo systemctl reload caddy
+```powershell
+cd E:\homepage-antigravity
+$env:HOMEPAGE_DEPLOY_HOST = "your-server-ip"
+corepack pnpm@9.14.4 deploy:static
+corepack pnpm@9.14.4 deploy:static -- --apply
 ```
+
+只有当你改的是 `admin-server/` 后台服务代码、systemd 服务、Caddy 配置这些服务器组件时，才需要看首次迁移或服务维护流程。
 
 ## 十九、出问题先查哪里
 
@@ -494,21 +530,27 @@ sudo journalctl -u homepage-lite-admin -n 100 --no-pager
 
 ### 3. 后台能打开，但点发布失败
 
-执行：
+先不要反复点发布，也不要在服务器上手动构建。先看后台日志：
 
 ```sh
-cd /var/www/homepage
-set -a
-. /etc/homepage-admin.env
-set +a
-corepack pnpm@9.14.4 build
+sudo journalctl -u homepage-lite-admin -n 100 --no-pager
 ```
 
-如果这条命令失败，后台里的发布一定也会失败。
+如果只是想尽快让前台更新，先回到本地执行 `deploy:static`，确认本地构建能过，再静态上线。
 
-## 二十、你这次最适合的执行顺序
+## 二十、日常更新最适合的执行顺序
 
 你就照这个顺序走，最不容易乱：
+
+1. 本地改代码或内容
+2. 本地执行 `corepack pnpm@9.14.4 deploy:static`
+3. 看输出确认只是演练，没有上传
+4. 确认没问题后执行 `corepack pnpm@9.14.4 deploy:static -- --apply`
+5. 打开 `blog.yugold.top` 检查页面
+
+## 二十一、首次迁移或重装才用的执行顺序
+
+只有服务器目录坏了、后台服务要重装、Caddy 要重配时，才照这个顺序走：
 
 1. SSH 登录阿里云服务器
 2. 看 `caddy` / `nginx` / `node` 当前状态
@@ -522,7 +564,7 @@ corepack pnpm@9.14.4 build
 10. 修改 `/etc/caddy/Caddyfile`
 11. 在你自己电脑先测试 `blog.yugold.top` 和 `admin.yugold.top`
 
-## 二十一、你现在手里已经准备好的文件
+## 二十二、你现在手里已经准备好的文件
 
 这几个文件就是我已经给你备好的：
 
