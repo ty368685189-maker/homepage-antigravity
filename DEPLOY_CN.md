@@ -32,7 +32,7 @@ corepack pnpm@9.14.4 deploy:static -- --apply
 - 本地构建并打包 `dist/`
 - 服务器上自动读取 Caddy 当前指向的静态目录
 - 先备份线上 `dist/`
-- 解压新静态文件覆盖
+- 清空旧静态文件并解压新静态文件，避免旧哈希资源残留
 - 做一次线上访问检查
 
 它不会在 VPS 上执行 `pnpm install`，不会在 VPS 上执行 `pnpm build`，也不会重启 Caddy 或后台服务。

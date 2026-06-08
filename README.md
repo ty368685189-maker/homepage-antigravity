@@ -20,7 +20,7 @@ corepack pnpm@9.14.4 dev
 | `corepack pnpm@9.14.4 dev` | 启动本地开发服务器 |
 | `corepack pnpm@9.14.4 build` | 构建静态站点并生成 Pagefind 索引 |
 | `corepack pnpm@9.14.4 deploy:static` | 本地构建并演练安全静态部署，不上传服务器 |
-| `corepack pnpm@9.14.4 deploy:static -- --apply` | 本地构建后上传静态包，备份线上 `dist/` 再覆盖 |
+| `corepack pnpm@9.14.4 deploy:static -- --apply` | 本地构建后上传静态包，备份线上 `dist/` 再干净替换 |
 | `corepack pnpm@9.14.4 release:static` | 构建并打包可上传到 VPS 的静态站点 |
 | `corepack pnpm@9.14.4 release:server` | 打包可上传到 VPS 的整套服务器源码 |
 | `corepack pnpm@9.14.4 preview` | 预览 `dist/` 构建结果 |
@@ -53,7 +53,7 @@ http://127.0.0.1:4310/admin
 
 项目输出目录为 `dist/`，适合部署到 Cloudflare Pages、Vercel、Netlify 或静态服务器。
 
-日常改首页、导航、样式和文章时，优先使用安全静态部署脚本。它只在本地构建，把 `dist/` 打包上传到服务器；服务器只会备份并覆盖 Caddy 指向的静态目录，不会在 VPS 上安装依赖、构建项目或重启服务。
+日常改首页、导航、样式和文章时，优先使用安全静态部署脚本。它只在本地构建，把 `dist/` 打包上传到服务器；服务器只会备份并干净替换 Caddy 指向的静态目录，不会在 VPS 上安装依赖、构建项目或重启服务。
 
 先演练，不上传：
 

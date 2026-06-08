@@ -83,7 +83,7 @@ function printUsage() {
 	console.log("  HOMEPAGE_DEPLOY_HOST=your-server-ip pnpm deploy:static -- --apply");
 	console.log("");
 	console.log("Options:");
-	console.log("  --apply       upload and replace the Caddy static root");
+	console.log("  --apply       upload and cleanly replace the Caddy static root");
 	console.log("  --skip-build  package the existing dist/ without rebuilding");
 	console.log("");
 }
@@ -118,6 +118,7 @@ function remoteCommand(archiveName) {
 		'tar -xzf "$ARCHIVE" -C "$CHECK"',
 		'test -s "$CHECK/index.html"',
 		'test -d "$CHECK/_astro"',
+		'find "$ROOT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +',
 		'tar -xzf "$ARCHIVE" -C "$ROOT"',
 		'rm -rf "$CHECK"',
 		'rm -f "$ARCHIVE"',
